@@ -1,53 +1,43 @@
-import Grid from '@mui/material/Grid2'
-import Paper from '@mui/material/Paper'
-import { styled } from '@mui/material/styles'
-import * as React from 'react'
-import { useState } from 'react'
-import PoetryCard from '../../components/PoetryCard'
-import { ViaggioInMare } from '../../data/Poems'
-
+import Grid from '@mui/material/Grid';
+import * as React from 'react';
+import { useState } from 'react';
+import PoetryCard from '../../components/PoetryCard';
+import PoetryDiary from '../../components/PoetryDiary';
+import { TutteLePoesie } from '../../data/Poems';
 
 export default function PoetryPage() {
-    const [selectedCard, setSelectedCard] = useState("");
+  const [selectedCard, setSelectedCard] = useState<{
+    title: string;
+    subtitle: string;
+    content: string;
+    img: string;
+  } | null>(null);
 
-    const handleClose = () => {
-        setSelectedCard("");
-    }
+  const handleClose = () => {
+    setSelectedCard(null);
+  };
 
-    return (
-        <>
-            <h1>PoetryPage</h1>
-            {selectedCard === "" &&  (
-                <Grid container spacing={2}>
-                    <Grid size={4}>
-                        <PoetryCard title="TITOLO" subtitle="Sotto" img="https://www.mille-animali.com/wp/wp-content/uploads/2016/02/razza-1.jpg" onSelectCard={setSelectedCard} />
-                    </Grid>
-                    <Grid size={4}>
-                        <PoetryCard title="TITOLO" subtitle="Sotto" img="https://www.mille-animali.com/wp/wp-content/uploads/2016/02/razza-1.jpg" onSelectCard={setSelectedCard} />
-                    </Grid>
-                    <Grid size={4}>
-                        <PoetryCard title="TITOLO" subtitle="Sotto" img="https://www.mille-animali.com/wp/wp-content/uploads/2016/02/razza-1.jpg" onSelectCard={setSelectedCard} />
-                    </Grid>
-                    <Grid size={4}>
-                        <PoetryCard title="TITOLO" subtitle="Sotto" img="https://www.mille-animali.com/wp/wp-content/uploads/2016/02/razza-1.jpg" onSelectCard={setSelectedCard} />
-                    </Grid>
-                </Grid>
-                )
-            }
-            {selectedCard !== "" && (
-                <div className="overlay" onClick={handleClose}>
-          <div className="page-content">
-                        <h2>{ViaggioInMare.title}</h2>
-                        <p>{ViaggioInMare.content.split('\n').map((line : string, index: React.Key | null | undefined) => (
-                            <p key={index}>{line}</p>
-                        ))}</p>
-          </div>
-        </div>
-               
-
-            )
-            }
-
-        </>
-    )
+  return (
+    <div style={{ padding: '20px', backgroundColor: '#f9f9f9', minHeight: '100vh' }}>
+      <h1 style={{ textAlign: 'center', marginBottom: '20px', color: '#333' }}>PoetryPage</h1>
+      {!selectedCard && (
+        <Grid container spacing={4} justifyContent="left">
+          {TutteLePoesie.map((poem, index: number) => (
+            <Grid item xs={12} sm={6} md={4} key={index}>
+              <PoetryCard
+                title={poem.title}
+                subtitle={poem.subtitle}
+                content={poem.content}
+                img={poem.img}
+                onSelectCard={setSelectedCard}
+              />
+            </Grid>
+          ))}
+        </Grid>
+      )}
+      {selectedCard && (
+        <PoetryDiary selectedCard={selectedCard} handleClose={handleClose} />
+      )}
+    </div>
+  );
 }

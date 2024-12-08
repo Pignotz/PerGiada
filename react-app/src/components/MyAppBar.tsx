@@ -20,7 +20,6 @@ export default function MyAppBar({ onSelectDrawerItem } : Props) {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Per Giada
           </Typography>
-          <Button color="inherit">Login</Button>
         </Toolbar>
       </AppBar>
     </Box>
