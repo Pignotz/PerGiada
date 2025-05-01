@@ -3,10 +3,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import './heart.css'; // Import the Heart.css file
 // Configurazione globale delle dimensioni e parametri di gioco
 const config = {
+	gameDifficulty: {
+		verticalStepsUntilLoss: () => 10,
+		sideStepsBeforeChangeDirection: () =>2,
+		timeForAStep: () => 1000,
+	},
 	gameArea: {
 		width: (windowWidth: number) => windowWidth * 0.7,
-		    height: (windowHeight: number) => windowHeight * 0.3,
-		    backgroundColor: () => 'black',
+		height: (windowHeight: number) => windowHeight * 0.3,
+		backgroundColor: () => 'black',
 	},
 	player: {
 		width: (gameWidth: number) => config.gameArea.width(gameWidth) / 20,
@@ -24,7 +29,9 @@ const config = {
 		height: (gameWidth: number) => config.invader.width(gameWidth),  // Manteniamo l'altezza uguale alla larghezza
 		xSpacing: (gameWidth: number) => config.invader.width(gameWidth),  // Distanza orizzontale tra invaders
 		ySpacing: (gameWidth: number) => config.invader.width(gameWidth),  // Distanza verticale tra invaders
-		speed: () => 8,
+		vSpeed: (gameWidth: number) => (config.gameOverLimit(gameWidth) - 
+			(config.invader.rowCount()*(config.invader.ySpacing(gameWidth)+config.invader.height(gameWidth)))) / config.gameDifficulty.verticalStepsUntilLoss(),
+		hSpeed: (gameWidth: number) => 8,
 		color: () => 'red',
 	},
 	bullet: {
@@ -127,6 +134,8 @@ const SpaceInvaders: React.FC = () => {
 		}
 	};
 
+	
+	
 	// Aggiorna la posizione dei proiettili
 	useEffect(() => {
 		if (paused) return;
@@ -176,36 +185,62 @@ const SpaceInvaders: React.FC = () => {
 	}, [paused]);
 
 
-	// Gestisce il movimento degli invaders
+	//Gestisce il movimento degli invaders
+	const invaderIntervalRef = useRef<NodeJS.Timeout | number | null>(null);
+	const numOfSideSteps = useRef<number>(0); // Contatore dei passi laterali
+	const sideRightDirection = useRef<boolean>(true); // Direzione del movimento laterale
+	const applyVerticalStep = useRef<boolean>(false); // Indica se fare uno step verticale
+
 	useEffect(() => {
-		if (paused) return;
-
-		const invaderMovementInterval = setInterval(() => {
-			setInvaders(prevInvaders => {
-				const allDead = prevInvaders.every(invader => !invader.alive);
-				if (allDead) {
-					setGameOver(true);
-					clearInterval(invaderMovementInterval);
-					return prevInvaders;
-				}
-
-				return prevInvaders.map(invader => {
-					if (invader.alive) {
-						const newY = invader.y + config.invader.speed();
-						if (newY + config.invader.height(windowSize.width) > config.gameOverLimit(windowSize.width)) {
-							setGameOver(true); // Termina il gioco se un invader supera il limite
+	    if (paused) return; // Se il gioco è in pausa, non avviare l'intervallo
+	    invaderIntervalRef.current = setInterval(() => {
+	        setInvaders(prevInvaders => {
+	            const allDead = prevInvaders.every(invader => !invader.alive);
+	            if (allDead) {
+	                setGameOver(true);
+	                return prevInvaders;
+	            }
+	            // Verifica se è il momento di cambiare direzione o muoversi verticalmente
+	            let shouldChangeDirection = numOfSideSteps.current >= config.gameDifficulty.sideStepsBeforeChangeDirection();
+	            let shouldMoveDown = shouldChangeDirection && applyVerticalStep.current;
+	            if (shouldChangeDirection) {
+	                // Cambia direzione se non deve scendere
+					sideRightDirection.current = !sideRightDirection.current;
+	                if (!shouldMoveDown) {
+	                }
+	                // Resetta il contatore
+	                numOfSideSteps.current = 0;
+	            }
+	            return prevInvaders.map(invader => {
+	                if (invader.alive) {
+	                    // Calcola la nuova posizione X
+	                    let newX = invader.x;
+	                    let newY = invader.y;
+	                    // Se deve scendere, aumenta la Y
+	                    if (shouldMoveDown) {
+	                        newY += config.invader.vSpeed(windowSize.width);
+	                    }else{
+							newX = + (sideRightDirection.current ? config.invader.hSpeed(windowSize.width) : -config.invader.hSpeed(windowSize.width));
 						}
-						return { ...invader, y: newY };
-					}
-					return invader;
-				});
-			});
-		}, 1000);
+	                    // Se supera il limite inferiore, termina il gioco
+	                    if (newY + config.invader.height(windowSize.width) > config.gameOverLimit(windowSize.width)) {
+	                        setGameOver(true);
+	                    }
+	                    return { ...invader, x: newX, y: newY };
+	                }
+	                return invader;
+	            });
+	        });
+	        // Incrementa il numero di passi laterali
+	        numOfSideSteps.current += 1;
+	    }, config.gameDifficulty.timeForAStep());
 
-		return () => clearInterval(invaderMovementInterval);
-	}, [paused]);
-
-	// Gestisce i movimenti del giocatore
+	    return () => {
+	        if (invaderIntervalRef.current) {
+	            clearInterval(invaderIntervalRef.current);
+	        }
+	    };
+	}, [paused]);	// Gestisce i movimenti del giocatore
 	const movePlayer = (e: KeyboardEvent) => {
 		if (paused) return;
 
